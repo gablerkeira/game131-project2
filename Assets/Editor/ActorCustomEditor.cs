@@ -7,8 +7,23 @@ using System;
 [CustomEditor(typeof(Actor))]
 public class ActorEditor : Editor
 {
+    private static GUIStyle errorBoxStyle = null;
+
+    private bool showDerivedProperties = false;
+
+    private static void InitializeStyles()
+    {
+        errorBoxStyle = new GUIStyle(EditorStyles.textField);
+
+        errorBoxStyle.normal.background = Resources.Load<Texture2D>("Textures/txErrorBackground");
+
+    }
+
+    private DerivedStatList derivedStats;
+
     public override void OnInspectorGUI()
     {
+        #region Actor Stats
         Actor myActor = target as Actor;
 
         #region Actor Name
@@ -75,8 +90,96 @@ public class ActorEditor : Editor
         SelectionList<Actor.Position> positions = new SelectionList<Actor.Position>(positionValues, positionNames);
         myActor.boardPosition = positions.PositionGrid("Board Position: ", myActor.boardPosition, 3);
         #endregion
-    }
+        #endregion
 
+        #region AI Authoring
+        if (errorBoxStyle == null) InitializeStyles();
+
+        showDerivedProperties = EditorGUILayout.Foldout(showDerivedProperties, new GUIContent("Derived Properties", "Properties based on static unit stats."));
+        if (showDerivedProperties)
+        {
+            derivedStats = AssetDatabase.LoadAssetAtPath("Assets/DerivedProperties.asset", typeof(DerivedStatList)) as DerivedStatList;
+            if (derivedStats == null)
+            {
+                UnityEngine.MonoBehaviour.print("Nope, not there");
+                derivedStats = ScriptableObject.CreateInstance<DerivedStatList>();
+                AssetDatabase.CreateAsset(derivedStats, "Assets/DerivedProperties.asset");
+                AssetDatabase.SaveAssets();
+            }
+
+            int nameFieldWidth = 80;
+            for (int i = 0; i < derivedStats.Length; i++)
+            {
+                int statNameWidth = (int)EditorStyles.textField.CalcSize(new GUIContent(derivedStats.list[i].statName + " ")).x;
+                if (statNameWidth > nameFieldWidth) nameFieldWidth = statNameWidth;
+            }
+
+            bool derivedPropEquationChanged = false;
+
+            EditorGUILayout.BeginVertical();
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Name", GUILayout.Width(nameFieldWidth));
+            EditorGUILayout.LabelField("Expression");
+            EditorGUILayout.LabelField("Current Value", GUILayout.MaxWidth(90));
+            EditorGUILayout.EndHorizontal();
+
+            for (int i = 0; i < (derivedStats != null ? derivedStats.Length : 0); i++)
+            {
+                EditorGUILayout.BeginHorizontal();
+
+                // TODO: Watch out for repeats
+                derivedStats.list[i].statName = EditorGUILayout.TextField(derivedStats.list[i].statName, GUILayout.Width(nameFieldWidth));
+
+                int derivedValue = 0;
+                string derivedEquationErrorMessage = string.Empty;
+
+                // How to detect expression errors vs. circular definitions?
+                if (!derivedStats.list[i].TryEvaluate((target as Actor), derivedStats, out derivedValue)) derivedEquationErrorMessage = "Invalid expression.";
+
+                string newDerivedPropEquation = EditorGUILayout.TextField(derivedStats.list[i].expression, derivedEquationErrorMessage.Length == 0 ? EditorStyles.textField : errorBoxStyle);
+                if (derivedEquationErrorMessage.Length > 0)
+                    GUI.Label(GUILayoutUtility.GetLastRect(), new GUIContent(string.Empty, derivedEquationErrorMessage));
+                else
+                    EditorGUILayout.LabelField(derivedValue.ToString(), GUILayout.MaxWidth(90));
+
+                if (newDerivedPropEquation != derivedStats.list[i].expression) derivedPropEquationChanged = true;
+
+                derivedStats.list[i].expression = newDerivedPropEquation;
+
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EditorGUILayout.EndVertical();
+
+            bool added = false;
+            if (GUILayout.Button("Add"))
+            {
+                added = true;
+                if (derivedStats == null) derivedStats = new DerivedStatList();
+
+                List<DerivedStat> newDerivedStats;
+                if (derivedStats.list != null)
+                    newDerivedStats = new List<DerivedStat>(derivedStats.list);
+                else
+                    newDerivedStats = new List<DerivedStat>();
+                newDerivedStats.Add(new DerivedStat());
+
+                derivedStats.list = newDerivedStats.ToArray();
+                this.Repaint();
+            }
+
+            if (GUI.changed || added)
+            {
+                EditorUtility.SetDirty(derivedStats);
+                serializedObject.ApplyModifiedProperties();
+                AssetDatabase.SaveAssets();
+            }
+
+            if (derivedPropEquationChanged) this.Repaint();
+
+        }
+        #endregion
+    }
 }
 
 class SelectionList<T> where T : IComparable
