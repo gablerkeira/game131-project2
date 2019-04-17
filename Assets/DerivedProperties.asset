@@ -12,8 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 0}
   m_Name: DerivedProperties
   m_EditorClassIdentifier: Assembly-CSharp::DerivedStatList
-  list:
-  - statName: targetCount
-    expression: numTargets
-  - statName: damagePotential
-    expression: targetCount * damage
+  list: []

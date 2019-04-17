@@ -127,13 +127,13 @@ public class ActorEditor : Editor
             {
                 EditorGUILayout.BeginHorizontal();
 
-                // TODO: Watch out for repeats
+
                 derivedStats.list[i].statName = EditorGUILayout.TextField(derivedStats.list[i].statName, GUILayout.Width(nameFieldWidth));
 
                 int derivedValue = 0;
                 string derivedEquationErrorMessage = string.Empty;
 
-                // How to detect expression errors vs. circular definitions?
+
                 if (!derivedStats.list[i].TryEvaluate((target as Actor), derivedStats, out derivedValue)) derivedEquationErrorMessage = "Invalid expression.";
 
                 string newDerivedPropEquation = EditorGUILayout.TextField(derivedStats.list[i].expression, derivedEquationErrorMessage.Length == 0 ? EditorStyles.textField : errorBoxStyle);
@@ -176,7 +176,7 @@ public class ActorEditor : Editor
             }
 
             if (derivedPropEquationChanged) this.Repaint();
-
+            DrawDefaultInspector();
         }
         #endregion
     }

@@ -130,6 +130,7 @@ public class Actor : MonoBehaviour {
         {
             case TargetSelectionRule.AnyAvailable:
                 return availableTargets[Random.Range(0, availableTargets.Count)];
+
             case TargetSelectionRule.HighestHealth:
                 int highestHealth = 0;
                 for (int i = 0; i < availableTargets.Count; i++)
@@ -140,6 +141,7 @@ public class Actor : MonoBehaviour {
                     if (availableTargets[i].hitPoints == highestHealth)
                         highestHealthIndexes.Add(i);
                 return availableTargets[highestHealthIndexes[Random.Range(0, highestHealthIndexes.Count)]];
+
             case TargetSelectionRule.StrongestAttack:
                 int highestAttack = 0;
                 for (int i = 0; i < availableTargets.Count; i++)
@@ -151,7 +153,45 @@ public class Actor : MonoBehaviour {
                         highestAttackIndexes.Add(i);
                 return availableTargets[highestAttackIndexes[Random.Range(0, highestAttackIndexes.Count)]];
         }
+
+        Actor myActor = GetComponent<Actor>();
+
+
+        if (myActor.actionEffect == ActionEffect.Normal)
+        {
+            for (int i = 0; i < availableTargets.Count; i++)
+            {
+                if (availableTargets[i].hitPoints <= damage)
+                {
+                    currentTarget = availableTargets[i];
+                }
+            }
+        }
+
+        if (myActor.actionEffect == ActionEffect.Disable)
+        {
+            for (int i = 0; i < availableTargets.Count; i++)
+            {
+                if (availableTargets[i].damage >= hitPoints)
+                {
+                    currentTarget = availableTargets[i];
+                }
+            }
+        }
+
+        if (myActor.actionEffect == ActionEffect.Heal)
+        {
+            for (int i = 0; i < availableTargets.Count; i++)
+            {
+                if (availableTargets[i].hitPoints <= maxHitPoints)
+                {
+                    currentTarget = availableTargets[i];
+                }
+            }
+        }
+
         return availableTargets[Random.Range(0, availableTargets.Count)];
+
     }
 
     #region Target selection core (do not change)
@@ -231,6 +271,4 @@ public class Actor : MonoBehaviour {
     }
 
     #endregion
-
-
 }
